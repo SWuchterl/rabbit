@@ -708,7 +708,14 @@ class BinByBinStat:
                             + kstat * n_zero_var
                         )
                         cbeta = -beta0 * kstat * n_zero_var
+                        # beta0 = nobs = 0 (frequentist toys): exact profile is beta = 0, but
+                        # d sqrt(disc)/d disc at disc = 0 is inf -> NaN gradient; solve a dummy instead.
+                        zero = (beta0 == 0.0) & (nobs == 0.0)
+                        abeta = tf.where(zero, tf.ones_like(abeta), abeta)
+                        bbeta = tf.where(zero, -tf.ones_like(bbeta), bbeta)
+                        cbeta = tf.where(zero, tf.zeros_like(cbeta), cbeta)
                         beta = solve_quad_eq(abeta, bbeta, cbeta)
+                        beta = tf.where(zero, tf.zeros_like(beta), beta)
                     elif self.binByBinStatMode == "full":
                         norm_profile = norm[: self.indata.nbins]
                         logbeta0 = self.logbeta0[: self.indata.nbins]
